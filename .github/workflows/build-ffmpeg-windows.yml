@@ -1,0 +1,52 @@
+name: build-ffmpeg-windows
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSYS2 (UCRT64)
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            git make pkgconf yasm nasm
+            mingw-w64-ucrt-x86_64-toolchain
+
+      - name: Build FFmpeg (x86_64)
+        run: |
+          set -e
+          PREFIX="$PWD/out/x86_64"
+          rm -rf out
+          mkdir -p out
+
+          ./configure \
+            --prefix="$PREFIX" \
+            --target-os=mingw64 \
+            --arch=x86_64 \
+            --enable-shared --disable-static \
+            --disable-doc --disable-programs \
+            --enable-gpl --enable-version3 \
+            --enable-protocol=http,https,tcp,udp,file,pipe,crypto \
+            --enable-demuxer=hls,mpegts,matroska,mov,avi \
+            --enable-decoder=h264,hevc,aac,mp3,ac3,eac3,opus,flac \
+            --enable-decoder=dvbsub,hdmv_pgs_subtitle,ass,subrip,mov_text,eia_608,eia_708
+
+          make -j"$(nproc)"
+          make install
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ffmpeg-windows-x86_64
+          path: out/x86_64
