@@ -1,0 +1,144 @@
+name: build-ffmpeg-android
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout (this repo must contain FFmpeg source)
+        uses: actions/checkout@v4
+
+      # If your FFmpeg is NOT in this repo, replace checkout with a clone step:
+      # - name: Clone FFmpeg
+      #   run: |
+      #     git clone --depth 1 --branch n6.1 https://github.com/YOURNAME/FFmpeg.git ffmpeg
+      #     cd ffmpeg
+
+      - name: Install build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            yasm nasm pkg-config build-essential git \
+            autoconf automake libtool cmake ninja-build
+
+      - name: Setup Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r26d
+
+      - name: Build FFmpeg (Android, multi-ABI, static+PIC)
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: |
+          set -euo pipefail
+
+          # If FFmpeg source is in a subfolder, cd there:
+          # cd ffmpeg
+
+          NDK="${ANDROID_NDK_HOME}"
+          API=21
+
+          TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64"
+          SYSROOT="$TOOLCHAIN/sysroot"
+
+          rm -rf out
+          mkdir -p out
+
+          build_one() {
+            ABI="$1"
+            CPU="$2"
+            TARGET="$3"
+            CC="$4"
+            CXX="$5"
+            AR="$6"
+            RANLIB="$7"
+            STRIP="$8"
+            EXTRA_CFLAGS="$9"
+            EXTRA_LDFLAGS="${10}"
+
+            PREFIX="$PWD/out/$ABI"
+            mkdir -p "$PREFIX"
+
+            echo "==== Building FFmpeg for $ABI ===="
+
+            make distclean || true
+
+            ./configure \
+              --prefix="$PREFIX" \
+              --target-os=android \
+              --arch="$TARGET" \
+              --cpu="$CPU" \
+              --enable-cross-compile \
+              --sysroot="$SYSROOT" \
+              --cc="$CC" \
+              --cxx="$CXX" \
+              --ar="$AR" \
+              --ranlib="$RANLIB" \
+              --strip="$STRIP" \
+              --disable-shared --enable-static \
+              --enable-pic \
+              --disable-doc --disable-programs \
+              --enable-gpl --enable-version3 \
+              --enable-protocol=http,https,tcp,udp,file,pipe,crypto \
+              --enable-demuxer=hls,mpegts,matroska,mov,avi \
+              --enable-decoder=h264,hevc,aac,mp3,ac3,eac3,opus,flac \
+              --enable-decoder=dvbsub,hdmv_pgs_subtitle,ass,subrip,mov_text,eia_608,eia_708 \
+              --extra-cflags="$EXTRA_CFLAGS" \
+              --extra-ldflags="$EXTRA_LDFLAGS"
+
+            make -j"$(nproc)"
+            make install
+
+            # Optional: shrink libs a bit
+            find "$PREFIX/lib" -name "*.a" -exec "$STRIP" -g {} \; || true
+          }
+
+          # Map ABIs -> NDK clang triples
+          # arm64-v8a
+          build_one \
+            "arm64-v8a" "armv8-a" "aarch64" \
+            "$TOOLCHAIN/bin/aarch64-linux-android${API}-clang" \
+            "$TOOLCHAIN/bin/aarch64-linux-android${API}-clang++" \
+            "$TOOLCHAIN/bin/llvm-ar" \
+            "$TOOLCHAIN/bin/llvm-ranlib" \
+            "$TOOLCHAIN/bin/llvm-strip" \
+            "-fPIC" ""
+
+          # armeabi-v7a
+          build_one \
+            "armeabi-v7a" "armv7-a" "arm" \
+            "$TOOLCHAIN/bin/armv7a-linux-androideabi${API}-clang" \
+            "$TOOLCHAIN/bin/armv7a-linux-androideabi${API}-clang++" \
+            "$TOOLCHAIN/bin/llvm-ar" \
+            "$TOOLCHAIN/bin/llvm-ranlib" \
+            "$TOOLCHAIN/bin/llvm-strip" \
+            "-mfpu=neon -fPIC" ""
+
+          # x86_64
+          build_one \
+            "x86_64" "x86-64" "x86_64" \
+            "$TOOLCHAIN/bin/x86_64-linux-android${API}-clang" \
+            "$TOOLCHAIN/bin/x86_64-linux-android${API}-clang++" \
+            "$TOOLCHAIN/bin/llvm-ar" \
+            "$TOOLCHAIN/bin/llvm-ranlib" \
+            "$TOOLCHAIN/bin/llvm-strip" \
+            "-fPIC" ""
+
+          # x86
+          build_one \
+            "x86" "i686" "x86" \
+            "$TOOLCHAIN/bin/i686-linux-android${API}-clang" \
+            "$TOOLCHAIN/bin/i686-linux-android${API}-clang++" \
+            "$TOOLCHAIN/bin/llvm-ar" \
+            "$TOOLCHAIN/bin/llvm-ranlib" \
+            "$TOOLCHAIN/bin/llvm-strip" \
+            "-fPIC" ""
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ffmpeg-android
+          path: out
