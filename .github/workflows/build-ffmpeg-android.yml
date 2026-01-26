@@ -3,15 +3,10 @@ name: build-ffmpeg-android-shared
 on:
   workflow_dispatch:
     inputs:
-      ffmpeg_repo:
-        description: 'FFmpeg repo URL'
+      ref:
+        description: 'Git ref in THIS repo (branch/tag/commit) to build'
         required: false
-        default: 'https://github.com/Ftak29/FFmpeg.git'
-        type: string
-      ffmpeg_ref:
-        description: 'FFmpeg ref (branch/tag/commit)'
-        required: false
-        default: 'n6.1'
+        default: 'master'
         type: string
 
 jobs:
@@ -19,13 +14,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout (this repo)
         uses: actions/checkout@v4
-
-      - name: Clone FFmpeg (your fork)
-        run: |
-          rm -rf ffmpeg
-          git clone --depth 1 --branch "${{ github.event.inputs.ffmpeg_ref }}" "${{ github.event.inputs.ffmpeg_repo }}" ffmpeg
+        with:
+          ref: ${{ github.event.inputs.ref }}
 
       - name: Install build deps
         run: |
@@ -43,9 +35,12 @@ jobs:
       - name: Build FFmpeg (Android, multi-ABI, shared)
         run: |
           set -euo pipefail
-          cd ffmpeg
 
+          # We are already in the FFmpeg source tree because this workflow lives in the FFmpeg repo.
           NDK="${{ steps.setup-ndk.outputs.ndk-path }}"
+          echo "NDK = $NDK"
+          test -d "$NDK" || (echo "NDK path invalid" && exit 1)
+
           API=21
           TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64"
           SYSROOT="$TOOLCHAIN/sysroot"
@@ -99,6 +94,9 @@ jobs:
 
             make -j"$(nproc)"
             make install
+
+            echo "==== Built libs for $ABI ===="
+            ls -la "$PREFIX/lib" || true
           }
 
           build_one "arm64-v8a" "armv8-a" "aarch64" \
@@ -121,4 +119,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ffmpeg-android-shared
-          path: ffmpeg/out
+          path: out
