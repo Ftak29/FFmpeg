@@ -35,7 +35,7 @@ jobs:
             --target-os=mingw64 \
             --arch=x86_64 \
             --enable-shared --disable-static \
-            --disable-doc --disable-programs \
+            --disable-doc --enable-programs \
             --enable-gpl --enable-version3 \
             --enable-protocol=http,https,tcp,udp,file,pipe,crypto \
             --enable-demuxer=hls,mpegts,matroska,mov,avi \
