@@ -1,4 +1,4 @@
-name: build-ffmpeg-windows
+ablename: build-ffmpeg-windows
 
 on:
   workflow_dispatch:
