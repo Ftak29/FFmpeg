@@ -22,6 +22,13 @@ jobs:
           install: >-
             git make pkgconf yasm nasm
             mingw-w64-ucrt-x86_64-toolchain
+            mingw-w64-ucrt-x86_64-openssl
+            mingw-w64-ucrt-x86_64-dav1d
+            mingw-w64-ucrt-x86_64-libvpx
+            mingw-w64-ucrt-x86_64-libass
+            mingw-w64-ucrt-x86_64-freetype
+            mingw-w64-ucrt-x86_64-fribidi
+            mingw-w64-ucrt-x86_64-harfbuzz
 
       - name: Build FFmpeg (x86_64)
         run: |
@@ -35,12 +42,22 @@ jobs:
             --target-os=mingw64 \
             --arch=x86_64 \
             --enable-shared --disable-static \
-            --disable-doc --enable-programs \
+            --disable-doc \
+            --disable-debug \
             --enable-gpl --enable-version3 \
+            --enable-openssl \
+            --enable-libdav1d \
+            --enable-libvpx \
+            --enable-libass \
             --enable-protocol=http,https,tcp,udp,file,pipe,crypto \
-            --enable-demuxer=hls,mpegts,matroska,mov,avi \
+            --enable-demuxer=hls,dash,mpegts,matroska,mov,avi \
+            --enable-parser=h264,hevc,aac,mpegaudio,mpegvideo,opus,vp9,av1 \
+            --enable-bsf=h264_mp4toannexb,hevc_mp4toannexb,aac_adtstoasc \
             --enable-decoder=h264,hevc,aac,mp3,ac3,eac3,opus,flac \
-            --enable-decoder=dvbsub,hdmv_pgs_subtitle,ass,subrip,mov_text,eia_608,eia_708
+            --enable-decoder=mpeg2video,mpeg4,vp8,vp9,av1,mjpeg \
+            --enable-decoder=vorbis,alac,pcm_s16le,pcm_s24le \
+            --enable-decoder=dvbsub,dvb_teletext,hdmv_pgs_subtitle \
+            --enable-decoder=ass,subrip,mov_text,eia_608,eia_708
 
           make -j"$(nproc)"
           make install
