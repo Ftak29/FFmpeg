@@ -111,10 +111,6 @@ jobs:
             "$TOOLCHAIN/bin/x86_64-linux-android${API}-clang" \
             "$TOOLCHAIN/bin/x86_64-linux-android${API}-clang++"
 
-          build_one "x86" "i686" "x86" \
-            "$TOOLCHAIN/bin/i686-linux-android${API}-clang" \
-            "$TOOLCHAIN/bin/i686-linux-android${API}-clang++"
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
