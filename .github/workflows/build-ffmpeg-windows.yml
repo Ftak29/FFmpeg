@@ -65,15 +65,12 @@ jobs:
         run: |
           set -e
           PREFIX="$PWD/out/x86_64"
-          rm -rf out ffbuild
+
+          rm -rf out
           mkdir -p out
 
-          echo "---- configure flags ----"
-          cat <<'EOF'
-          NOTE:
-          - DO NOT use --enable-libflac (unknown). FFmpeg has native FLAC.
-          - Do NOT enable gnutls together with openssl.
-          EOF
+          # Clean previous build outputs safely (does NOT delete tracked ffbuild/common.mak)
+          make distclean || true
 
           ./configure \
             --prefix="$PREFIX" \
@@ -101,17 +98,9 @@ jobs:
             --enable-encoder=aac,libmp3lame,opus,flac \
             --enable-muxer=mp4,matroska,mp3,adts,flac,segment,mpegts
 
-          # If configure fails, dump config.log immediately.
-          if [ $? -ne 0 ]; then
-            echo "---- ffbuild/config.log ----"
-            sed -n '1,200p' ffbuild/config.log || true
-            exit 1
-          fi
-
           make -j"$(nproc)"
           make install
 
-          echo "---- built binaries ----"
           ls -la "$PREFIX/bin" || true
 
       - name: Upload artifact
