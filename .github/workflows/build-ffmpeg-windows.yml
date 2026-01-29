@@ -47,7 +47,6 @@ jobs:
             --enable-gpl --enable-version3 \
             \
             --enable-openssl \
-            --enable-gnutls \
             \
             --enable-libdav1d \
             --enable-libaom \
