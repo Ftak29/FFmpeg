@@ -60,7 +60,6 @@ jobs:
             --enable-libmp3lame \
             --enable-libopus \
             --enable-libvorbis \
-            --enable-libflac \
             \
             --enable-libx264 \
             --enable-libx265 \
