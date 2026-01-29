@@ -45,19 +45,31 @@ jobs:
             --disable-doc \
             --disable-debug \
             --enable-gpl --enable-version3 \
+            \
             --enable-openssl \
+            --enable-gnutls \
+            \
             --enable-libdav1d \
+            --enable-libaom \
             --enable-libvpx \
+            \
             --enable-libass \
-            --enable-protocol=http,https,tcp,udp,file,pipe,crypto \
-            --enable-demuxer=hls,dash,mpegts,matroska,mov,avi \
-            --enable-parser=h264,hevc,aac,mpegaudio,mpegvideo,opus,vp9,av1 \
-            --enable-bsf=h264_mp4toannexb,hevc_mp4toannexb,aac_adtstoasc \
-            --enable-decoder=h264,hevc,aac,mp3,ac3,eac3,opus,flac \
-            --enable-decoder=mpeg2video,mpeg4,vp8,vp9,av1,mjpeg \
-            --enable-decoder=vorbis,alac,pcm_s16le,pcm_s24le \
-            --enable-decoder=dvbsub,dvb_teletext,hdmv_pgs_subtitle \
-            --enable-decoder=ass,subrip,mov_text,eia_608,eia_708
+            --enable-libfreetype \
+            --enable-libfribidi \
+            \
+            --enable-libmp3lame \
+            --enable-libopus \
+            --enable-libvorbis \
+            --enable-libflac \
+            \
+            --enable-libx264 \
+            --enable-libx265 \
+            \
+            --enable-zlib \
+            --enable-bzlib \
+            --enable-libzstd \
+            \
+            --enable-network
 
           make -j"$(nproc)"
           make install
