@@ -23,21 +23,52 @@ jobs:
             git make pkgconf yasm nasm
             mingw-w64-ucrt-x86_64-toolchain
             mingw-w64-ucrt-x86_64-openssl
-            mingw-w64-ucrt-x86_64-aom
             mingw-w64-ucrt-x86_64-dav1d
             mingw-w64-ucrt-x86_64-libvpx
+            mingw-w64-ucrt-x86_64-aom
+            mingw-w64-ucrt-x86_64-lame
             mingw-w64-ucrt-x86_64-libass
             mingw-w64-ucrt-x86_64-freetype
             mingw-w64-ucrt-x86_64-fribidi
             mingw-w64-ucrt-x86_64-harfbuzz
 
+      - name: Env sanity
+        run: |
+          set -e
+          echo "MSYSTEM=$MSYSTEM"
+          uname -a
+          which gcc
+          gcc --version
+          which pkg-config
+          pkg-config --version
+
+      - name: Preflight pkg-config (one-by-one)
+        run: |
+          set -e
+          echo "---- pkg-config probes ----"
+          for p in openssl dav1d vpx aom freetype2 fribidi harfbuzz libass lame; do
+            printf "%-10s : " "$p"
+            if pkg-config --exists "$p"; then
+              echo "OK ($(pkg-config --modversion "$p"))"
+            else
+              echo "MISSING"
+              exit 1
+            fi
+          done
 
       - name: Build FFmpeg (x86_64)
         run: |
           set -e
           PREFIX="$PWD/out/x86_64"
-          rm -rf out
+          rm -rf out ffbuild
           mkdir -p out
+
+          echo "---- configure flags ----"
+          cat <<'EOF'
+          NOTE:
+          - DO NOT use --enable-libflac (unknown). FFmpeg has native FLAC.
+          - Do NOT enable gnutls together with openssl.
+          EOF
 
           ./configure \
             --prefix="$PREFIX" \
@@ -47,31 +78,36 @@ jobs:
             --disable-doc \
             --disable-debug \
             --enable-gpl --enable-version3 \
-            \
             --enable-openssl \
-            \
             --enable-libdav1d \
-            --enable-libaom \
             --enable-libvpx \
-            \
-            --enable-libass \
-            --enable-libfreetype \
-            --enable-libfribidi \
-            \
+            --enable-libaom \
             --enable-libmp3lame \
-            --enable-libopus \
-            --enable-libvorbis \
-            \
-            --enable-libx264 \
-            --enable-libx265 \
-            \
-            --enable-zlib \
-            --enable-bzlib \
-            \
-            --enable-network
+            --enable-libass \
+            --enable-protocol=http,https,tcp,udp,file,pipe,crypto \
+            --enable-demuxer=hls,dash,mpegts,matroska,mov,avi \
+            --enable-parser=h264,hevc,aac,mpegaudio,mpegvideo,opus,vp9,av1 \
+            --enable-bsf=h264_mp4toannexb,hevc_mp4toannexb,aac_adtstoasc \
+            --enable-decoder=h264,hevc,aac,mp3,ac3,eac3,opus,flac \
+            --enable-decoder=mpeg2video,mpeg4,vp8,vp9,av1,mjpeg \
+            --enable-decoder=vorbis,alac,pcm_s16le,pcm_s24le \
+            --enable-decoder=dvbsub,dvb_teletext,hdmv_pgs_subtitle \
+            --enable-decoder=ass,subrip,mov_text,eia_608,eia_708 \
+            --enable-encoder=aac,libmp3lame,opus,flac \
+            --enable-muxer=mp4,matroska,mp3,adts,flac,segment,mpegts
+
+          # If configure fails, dump config.log immediately.
+          if [ $? -ne 0 ]; then
+            echo "---- ffbuild/config.log ----"
+            sed -n '1,200p' ffbuild/config.log || true
+            exit 1
+          fi
 
           make -j"$(nproc)"
           make install
+
+          echo "---- built binaries ----"
+          ls -la "$PREFIX/bin" || true
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
