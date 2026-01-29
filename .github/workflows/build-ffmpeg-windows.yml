@@ -21,6 +21,7 @@ jobs:
           update: true
           install: >-
             git make pkgconf yasm nasm
+            diffutils
             mingw-w64-ucrt-x86_64-toolchain
             mingw-w64-ucrt-x86_64-openssl
             mingw-w64-ucrt-x86_64-dav1d
@@ -31,6 +32,8 @@ jobs:
             mingw-w64-ucrt-x86_64-freetype
             mingw-w64-ucrt-x86_64-fribidi
             mingw-w64-ucrt-x86_64-harfbuzz
+            mingw-w64-ucrt-x86_64-libxml2
+
 
       - name: Env sanity
         run: |
@@ -41,13 +44,15 @@ jobs:
           gcc --version
           which pkg-config
           pkg-config --version
+          which cmp
+          cmp --version || true
 
       - name: Preflight pkg-config (one-by-one)
         run: |
           set -e
           echo "---- pkg-config probes ----"
-          for p in openssl dav1d vpx aom freetype2 fribidi harfbuzz libass lame; do
-            printf "%-10s : " "$p"
+          for p in openssl dav1d vpx aom freetype2 fribidi harfbuzz libass lame libxml-2.0; do
+            printf "%-12s : " "$p"
             if pkg-config --exists "$p"; then
               echo "OK ($(pkg-config --modversion "$p"))"
             else
