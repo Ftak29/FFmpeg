@@ -23,13 +23,13 @@ jobs:
             git make pkgconf yasm nasm
             mingw-w64-ucrt-x86_64-toolchain
             mingw-w64-ucrt-x86_64-openssl
+            mingw-w64-ucrt-x86_64-aom
             mingw-w64-ucrt-x86_64-dav1d
             mingw-w64-ucrt-x86_64-libvpx
             mingw-w64-ucrt-x86_64-libass
             mingw-w64-ucrt-x86_64-freetype
             mingw-w64-ucrt-x86_64-fribidi
             mingw-w64-ucrt-x86_64-harfbuzz
-            mingw-w64-ucrt-x86_64-lame
 
 
       - name: Build FFmpeg (x86_64)
